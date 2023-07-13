@@ -5,7 +5,7 @@
     [Username]  VARCHAR (50)  NOT NULL,
     [Password]  VARCHAR (50)  NOT NULL,
     [Address]   VARCHAR (100) NULL,
-    [Email]     VARCHAR (100) NULL,
+    [Email]     VARCHAR (100) NOT NULL,
     [Role]      VARCHAR (20)  NULL,
     PRIMARY KEY CLUSTERED ([ID] ASC)
 );
