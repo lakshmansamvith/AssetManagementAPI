@@ -121,6 +121,8 @@
     <Folder Include="am\" />
     <Folder Include="am\Tables\" />
     <Folder Include="Security\" />
+    <Folder Include="StoredProcedures" />
+    <Folder Include="Repos" />
   </ItemGroup>
   <ItemGroup>
     <Build Include="am\Tables\Users.sql">
@@ -137,5 +139,20 @@
     </Build>
     <Build Include="Security\am.sql" />
     <Build Include="Security\Permissions.sql" />
+    <Build Include="StoredProcedures\am.RegisterUser.sql" />
+    <Build Include="StoredProcedures\am.GetUserProfile.sql" />
+    <Build Include="StoredProcedures\am.SellAsset.sql" />
+    <Build Include="StoredProcedures\am.BuyAsset.sql" />
+    <Build Include="StoredProcedures\am.AddUser.sql" />
+    <Build Include="StoredProcedures\am.UpdateUser.sql" />
+    <Build Include="StoredProcedures\am.DeleteUser.sql" />
+    <Build Include="StoredProcedures\am.AddAsset.sql" />
+    <Build Include="StoredProcedures\am.UpdateAsset.sql" />
+    <Build Include="StoredProcedures\am.DeleteAsset.sql" />
+    <Build Include="StoredProcedures\am.GetAllAssets.sql" />
+    <Build Include="StoredProcedures\am.GetAllUsers.sql" />
+    <Build Include="StoredProcedures\MakeTransaction.sql" />
+    <Build Include="StoredProcedures\am.GetTransactions.sql" />
+    <Build Include="StoredProcedures\GetTransactionById.sql" />
   </ItemGroup>
 </Project>
