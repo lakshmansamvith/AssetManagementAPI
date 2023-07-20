@@ -1,137 +1,94 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using AssetManagementAPI.Data.Models;
+using AssetManagementAPI.Manager;
+using AssetManagementAPI.Managers;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using AssetManagementAPI.Data.Models;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AssetManagementAPI.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
-    public class AssetsController : ControllerBase
+    [Route("api/[controller]")]
+    public class AssetController : ControllerBase
     {
-        private readonly AssetManagementContext _context;
+        private readonly IAssetManager _assetManager;
+        private readonly ILogger<AssetController> _logger;
 
-        public AssetsController(AssetManagementContext context)
+        public AssetController(IAssetManager assetManager, ILogger<AssetController> logger)
         {
-            _context = context;
+            _assetManager = assetManager;
+            _logger = logger;
         }
 
-        // GET: api/Assets
+        // GET: api/Asset
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Asset>>> GetAssets()
+        public async Task<ActionResult<IEnumerable<Asset>>> GetAllAssets()
         {
-          if (_context.Assets == null)
-          {
-              return NotFound();
-          }
-            return await _context.Assets.ToListAsync();
-        }
-
-        // GET: api/Assets/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<Asset>> GetAsset(int id)
-        {
-          if (_context.Assets == null)
-          {
-              return NotFound();
-          }
-            var asset = await _context.Assets.FindAsync(id);
-
-            if (asset == null)
-            {
-                return NotFound();
-            }
-
-            return asset;
-        }
-
-        // PUT: api/Assets/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutAsset(int id, Asset asset)
-        {
-            if (id != asset.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(asset).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
+                var assets = await _assetManager.GetAllAssetsAsync();
+                return Ok(assets);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                if (!AssetExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                _logger.LogError(ex, "Failed to get all assets from the controller.");
+                return StatusCode(500, "Internal server error.");
             }
-
-            return NoContent();
         }
 
-        // POST: api/Assets
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        // POST: api/Asset
         [HttpPost]
-        public async Task<ActionResult<Asset>> PostAsset(Asset asset)
+        public async Task<IActionResult> AddAsset([FromBody] Asset asset)
         {
-          if (_context.Assets == null)
-          {
-              return Problem("Entity set 'AssetManagementContext.Assets'  is null.");
-          }
-            _context.Assets.Add(asset);
             try
             {
-                await _context.SaveChangesAsync();
+                await _assetManager.AddAssetAsync(asset);
+                return Ok("Asset added successfully.");
             }
-            catch (DbUpdateException)
+            catch (Exception ex)
             {
-                if (AssetExists(asset.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
+                _logger.LogError(ex, "Asset could not be added from the controller.");
+                return StatusCode(500, "Internal server error.");
             }
-
-            return CreatedAtAction("GetAsset", new { id = asset.Id }, asset);
         }
 
-        // DELETE: api/Assets/5
+        // PUT: api/Asset/{id}
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdateAsset(int id, [FromBody] Asset asset)
+        {
+            try
+            {
+                if (id != asset.Id)
+                {
+                    return BadRequest("Invalid asset ID.");
+                }
+
+                await _assetManager.UpdateAssetAsync(asset);
+                return Ok("Asset updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Asset could not be updated from the controller.");
+                return StatusCode(500, "Internal server error.");
+            }
+        }
+
+        // DELETE: api/Asset/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteAsset(int id)
         {
-            if (_context.Assets == null)
+            try
             {
-                return NotFound();
+                await _assetManager.DeleteAssetAsync(id);
+                return Ok("Asset deleted successfully.");
             }
-            var asset = await _context.Assets.FindAsync(id);
-            if (asset == null)
+            catch (Exception ex)
             {
-                return NotFound();
+                _logger.LogError(ex, "Asset could not be deleted from the controller.");
+                return StatusCode(500, "Internal server error.");
             }
-
-            _context.Assets.Remove(asset);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool AssetExists(int id)
-        {
-            return (_context.Assets?.Any(e => e.Id == id)).GetValueOrDefault();
         }
     }
 }
