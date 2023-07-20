@@ -1,137 +1,77 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using AssetManagementAPI.Data.Models;
+using AssetManagementAPI.Manager;
+using AssetManagementAPI.Managers;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using AssetManagementAPI.Data.Models;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AssetManagementAPI.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
-    public class TransactionsController : ControllerBase
+    [Route("api/[controller]")]
+    public class TransactionController : ControllerBase
     {
-        private readonly AssetManagementContext _context;
+        private readonly ITransactionManager _transactionManager;
+        private readonly ILogger<TransactionController> _logger;
 
-        public TransactionsController(AssetManagementContext context)
+        public TransactionController(ITransactionManager transactionManager, ILogger<TransactionController> logger)
         {
-            _context = context;
+            _transactionManager = transactionManager;
+            _logger = logger;
         }
 
-        // GET: api/Transactions
+        // GET: api/Transaction
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Transaction>>> GetTransactions()
         {
-          if (_context.Transactions == null)
-          {
-              return NotFound();
-          }
-            return await _context.Transactions.ToListAsync();
+            try
+            {
+                var transactions = await _transactionManager.GetTransactionsAsync();
+                return Ok(transactions);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get transactions from the controller.");
+                return StatusCode(500, "Internal server error.");
+            }
         }
 
-        // GET: api/Transactions/5
+        // GET: api/Transaction/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<Transaction>> GetTransaction(int id)
+        public async Task<ActionResult<Transaction>> GetTransactionById(int id)
         {
-          if (_context.Transactions == null)
-          {
-              return NotFound();
-          }
-            var transaction = await _context.Transactions.FindAsync(id);
-
-            if (transaction == null)
-            {
-                return NotFound();
-            }
-
-            return transaction;
-        }
-
-        // PUT: api/Transactions/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutTransaction(int id, Transaction transaction)
-        {
-            if (id != transaction.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(transaction).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
+                var transaction = await _transactionManager.GetTransactionById(id);
+                if (transaction == null)
+                {
+                    return NotFound("Transaction not found.");
+                }
+                return Ok(transaction);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                if (!TransactionExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                _logger.LogError(ex, $"Failed to get transaction by ID ({id}) from the controller.");
+                return StatusCode(500, "Internal server error.");
             }
-
-            return NoContent();
         }
 
-        // POST: api/Transactions
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        // POST: api/Transaction
         [HttpPost]
-        public async Task<ActionResult<Transaction>> PostTransaction(Transaction transaction)
+        public async Task<IActionResult> MakeTransaction([FromBody] Transaction transaction)
         {
-          if (_context.Transactions == null)
-          {
-              return Problem("Entity set 'AssetManagementContext.Transactions'  is null.");
-          }
-            _context.Transactions.Add(transaction);
             try
             {
-                await _context.SaveChangesAsync();
+                await _transactionManager.MakeTransaction(transaction);
+                return Ok("Transaction made successfully.");
             }
-            catch (DbUpdateException)
+            catch (Exception ex)
             {
-                if (TransactionExists(transaction.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
+                _logger.LogError(ex, "Transaction could not be made from the controller.");
+                return StatusCode(500, "Internal server error.");
             }
-
-            return CreatedAtAction("GetTransaction", new { id = transaction.Id }, transaction);
-        }
-
-        // DELETE: api/Transactions/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteTransaction(int id)
-        {
-            if (_context.Transactions == null)
-            {
-                return NotFound();
-            }
-            var transaction = await _context.Transactions.FindAsync(id);
-            if (transaction == null)
-            {
-                return NotFound();
-            }
-
-            _context.Transactions.Remove(transaction);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
-        }
-
-        private bool TransactionExists(int id)
-        {
-            return (_context.Transactions?.Any(e => e.Id == id)).GetValueOrDefault();
         }
     }
 }

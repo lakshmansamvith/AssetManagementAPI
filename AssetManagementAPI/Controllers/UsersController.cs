@@ -1,137 +1,109 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
+﻿using AssetManagementAPI.Data.Models;
+using AssetManagementAPI.Manager;
+using AssetManagementAPI.Managers;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using AssetManagementAPI.Data.Models;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace AssetManagementAPI.Controllers
 {
-    [Route("api/[controller]")]
     [ApiController]
-    public class UsersController : ControllerBase
+    [Route("api/[controller]")]
+    public class UserController : ControllerBase
     {
-        private readonly AssetManagementContext _context;
+        private readonly IUserManager _userManager;
+        private readonly ILogger<UserController> _logger;
 
-        public UsersController(AssetManagementContext context)
+        public UserController(IUserManager userManager, ILogger<UserController> logger)
         {
-            _context = context;
+            _userManager = userManager;
+            _logger = logger;
         }
 
-        // GET: api/Users
+        // GET: api/User
         [HttpGet]
         public async Task<ActionResult<IEnumerable<User>>> GetUsers()
         {
-          if (_context.Users == null)
-          {
-              return NotFound();
-          }
-            return await _context.Users.ToListAsync();
+            try
+            {
+                var users = await _userManager.GetUsers();
+                return Ok(users);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to get all users from the controller.");
+                return StatusCode(500, "Internal server error.");
+            }
         }
 
-        // GET: api/Users/5
+        // GET: api/User/{id}
         [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
+        public async Task<ActionResult<User>> GetUserById(int id)
         {
-          if (_context.Users == null)
-          {
-              return NotFound();
-          }
-            var user = await _context.Users.FindAsync(id);
-
-            if (user == null)
-            {
-                return NotFound();
-            }
-
-            return user;
-        }
-
-        // PUT: api/Users/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(int id, User user)
-        {
-            if (id != user.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(user).State = EntityState.Modified;
-
             try
             {
-                await _context.SaveChangesAsync();
+                var user = await _userManager.GetUserById(id);
+                if (user == null)
+                {
+                    return NotFound("User not found.");
+                }
+                return Ok(user);
             }
-            catch (DbUpdateConcurrencyException)
+            catch (Exception ex)
             {
-                if (!UserExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+                _logger.LogError(ex, $"Failed to get user by ID ({id}) from the controller.");
+                return StatusCode(500, "Internal server error.");
             }
-
-            return NoContent();
         }
 
-        // POST: api/Users
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        // POST: api/User
         [HttpPost]
-        public async Task<ActionResult<User>> PostUser(User user)
+        public async Task<IActionResult> AddUser([FromBody] User user)
         {
-          if (_context.Users == null)
-          {
-              return Problem("Entity set 'AssetManagementContext.Users'  is null.");
-          }
-            _context.Users.Add(user);
             try
             {
-                await _context.SaveChangesAsync();
+                await _userManager.AddUser(user);
+                return Ok("User added successfully.");
             }
-            catch (DbUpdateException)
+            catch (Exception ex)
             {
-                if (UserExists(user.Id))
-                {
-                    return Conflict();
-                }
-                else
-                {
-                    throw;
-                }
+                _logger.LogError(ex, "User could not be added from the controller.");
+                return StatusCode(500, "Internal server error.");
             }
-
-            return CreatedAtAction("GetUser", new { id = user.Id }, user);
         }
 
-        // DELETE: api/Users/5
+        // DELETE: api/User/{id}
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            if (_context.Users == null)
+            try
             {
-                return NotFound();
+                await _userManager.DeleteUserAsync(id);
+                return Ok("User deleted successfully.");
             }
-            var user = await _context.Users.FindAsync(id);
-            if (user == null)
+            catch (Exception ex)
             {
-                return NotFound();
+                _logger.LogError(ex, "User could not be deleted from the controller.");
+                return StatusCode(500, "Internal server error.");
             }
-
-            _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
-
-            return NoContent();
         }
 
-        private bool UserExists(int id)
+        // POST: api/User/Register
+        [HttpPost("Register")]
+        public async Task<IActionResult> RegisterUser([FromBody] User user)
         {
-            return (_context.Users?.Any(e => e.Id == id)).GetValueOrDefault();
+            try
+            {
+                await _userManager.RegisterUser(user);
+                return Ok("User registered successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "User could not be registered from the controller.");
+                return StatusCode(500, "Internal server error.");
+            }
         }
     }
 }

@@ -4,7 +4,7 @@ using System.Text;
 
 using AssetManagementAPI.Data.Models;
 namespace AssetManagementAPI.Repos
-{
+{   
     public interface IUserRepo
     {
         Task<User> GetUserById(int id);
@@ -14,6 +14,8 @@ namespace AssetManagementAPI.Repos
         Task AddUser(User user);
 
         Task DeleteUserAsync(int id);
+
+        Task RegisterUser(User user); 
     }
 
 }
